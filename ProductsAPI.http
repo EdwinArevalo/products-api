@@ -1,6 +1,78 @@
-@ProductsAPI_HostAddress = http://localhost:5065
+@host = http://localhost:5065
 
-GET {{ProductsAPI_HostAddress}}/weatherforecast/
-Accept: application/json
+### Categorías
+GET {{host}}/api/categorias
 
 ###
+GET {{host}}/api/categorias/1
+
+###
+GET {{host}}/api/categorias/1/productos
+
+###
+POST {{host}}/api/categorias
+Content-Type: application/json
+
+{ "nombre": "Tablets" }
+
+###
+PUT {{host}}/api/categorias/4
+Content-Type: application/json
+
+{ "id": 4, "nombre": "Tablets y móviles" }
+
+###
+DELETE {{host}}/api/categorias/4
+
+### Productos
+GET {{host}}/api/productos
+
+###
+GET {{host}}/api/productos?categoriaId=2&buscar=mouse
+
+###
+GET {{host}}/api/productos/1
+
+###
+POST {{host}}/api/productos
+Content-Type: application/json
+
+{ "nombre": "Monitor LG 24", "precio": 499.00, "stock": 8, "categoriaId": 3 }
+
+###
+PUT {{host}}/api/productos/4
+Content-Type: application/json
+
+{ "id": 4, "nombre": "Monitor LG 27", "precio": 599.00, "stock": 5, "categoriaId": 3 }
+
+###
+DELETE {{host}}/api/productos/4
+
+### Casos de error
+# 404: no existe
+GET {{host}}/api/productos/999
+
+###
+# 400: la categoría no existe
+POST {{host}}/api/productos
+Content-Type: application/json
+
+{ "nombre": "Monitor X", "precio": 499.00, "stock": 8, "categoriaId": 999 }
+
+###
+# 400: datos inválidos (nombre vacío, precio negativo)
+POST {{host}}/api/productos
+Content-Type: application/json
+
+{ "nombre": "", "precio": -1, "stock": 8, "categoriaId": 3 }
+
+###
+# 409: categoría duplicada
+POST {{host}}/api/categorias
+Content-Type: application/json
+
+{ "nombre": "Laptops" }
+
+###
+# 409: categoría con productos
+DELETE {{host}}/api/categorias/1

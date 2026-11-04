@@ -1,0 +1,49 @@
+# SQL Server para desarrollo local.
+#   docker compose up -d      -> levanta SQL Server y carga ProductosDB.sql (solo la primera vez)
+#   docker compose down -v    -> elimina el contenedor y los datos
+# En Apple Silicon (arm64) la imagen corre emulada como linux/amd64.
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    container_name: productsapi-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "TuClave123!"   # debe coincidir con appsettings.json
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  # Contenedor de una sola ejecución: crea la base y los datos si aún no existen.
+  db-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      MSSQL_SA_PASSWORD: "TuClave123!"
+    volumes:
+      - ./ProductosDB.sql:/scripts/ProductosDB.sql:ro
+    restart: "no"
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        SQLCMD="/opt/mssql-tools18/bin/sqlcmd -C -S sqlserver -U sa -P $$MSSQL_SA_PASSWORD"
+        EXISTE=$$($$SQLCMD -h -1 -W -Q "SET NOCOUNT ON; SELECT ISNULL(DB_ID('ProductosDB'), 0)" | tr -d '[:space:]')
+        if [ "$$EXISTE" = "0" ]; then
+          echo "Creando ProductosDB..."
+          $$SQLCMD -b -i /scripts/ProductosDB.sql
+        else
+          echo "ProductosDB ya existe, no se hace nada."
+        fi
+
+volumes:
+  sqlserver-data:
